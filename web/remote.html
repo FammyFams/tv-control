@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TV Control</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #000000;
+    --card: #141418;
+    --line: #24242c;
+    --txt: #ececf2;
+    --muted: #8d8d9b;
+    --btn: #212128;
+    --btn-hover: #2b2b34;
+    --accent: #7b55ff;
+    --accent-hover: #8d6bff;
+    --accent-soft: #241d3d;
+    --on-accent: #ffffff;
+    --ok: #3ccf7a;
+    --danger: #ff6369;
+    --shadow: none;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--txt);
+    font: 14px/1.4 "Segoe UI", system-ui, sans-serif;
+    padding: 28px 20px;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+
+  /* Header */
+  header {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  h1 { font-size: 18px; font-weight: 650; margin: 0; letter-spacing: -.01em; }
+  .sub { color: var(--muted); font-size: 12px; }
+  .spacer { flex: 1; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px; border-radius: 999px;
+    background: var(--card); border: 1px solid var(--line);
+    font-size: 12px; color: var(--muted);
+    max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+  .pill.online .dot { background: var(--ok); }
+  .pill.err { color: var(--danger); }
+  .pill.err .dot { background: var(--danger); }
+  .ip {
+    width: 120px; height: 32px; padding: 0 10px;
+    border-radius: 8px; border: 1px solid var(--line);
+    background: var(--card); color: var(--txt); font: inherit; font-size: 12px;
+    user-select: text;
+  }
+  .ip:focus, .text input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+  /* Cards */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+    gap: 14px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: var(--shadow);
+  }
+  .card h2 {
+    margin: 0 0 12px; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .1em; color: var(--muted);
+  }
+  .card h2 + * { margin-top: 0; }
+  .card .sect { margin-top: 18px; }
+
+  /* Buttons */
+  button {
+    font: inherit; color: var(--txt);
+    background: var(--btn);
+    border: 1px solid transparent;
+    border-radius: 12px;
+    cursor: pointer;
+    display: inline-grid; place-items: center;
+    transition: background .12s, transform .06s;
+    touch-action: manipulation;
+  }
+  button:hover { background: var(--btn-hover); }
+  button:active, button.pressed { transform: scale(.95); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button svg {
+    width: 20px; height: 20px; pointer-events: none;
+    stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+  button svg.fill { fill: currentColor; stroke: none; }
+  .primary { background: var(--accent); color: var(--on-accent); }
+  .primary:hover { background: var(--accent-hover); }
+  .soft { background: var(--accent-soft); color: var(--accent); }
+  .soft:hover { background: var(--accent-soft); filter: brightness(.96); }
+  .power { width: 36px; height: 36px; border-radius: 10px; color: var(--danger); background: var(--card); border-color: var(--line); }
+
+  /* Navigation pad */
+  .pad {
+    display: grid;
+    grid-template-columns: repeat(3, 64px);
+    grid-template-rows: repeat(3, 64px);
+    gap: 8px;
+    justify-content: center;
+  }
+  .pad .ok { font-weight: 700; letter-spacing: .04em; border-radius: 50%; }
+  .pad .corner { color: var(--muted); }
+  .pad .corner:hover { color: var(--txt); }
+  .pad .opt { font-size: 20px; font-weight: 700; }
+
+  /* Playback + volume */
+  .bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .bar button { height: 52px; }
+  .bar .big svg { width: 24px; height: 24px; }
+  .vol button { font-size: 22px; font-weight: 500; }
+
+  .text { display: flex; gap: 6px; }
+  .text input {
+    flex: 1; min-width: 0; height: 40px; padding: 0 12px;
+    border-radius: 10px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--txt); font: inherit; user-select: text;
+  }
+  .text button { height: 40px; padding: 0 14px; border-radius: 10px; font-weight: 600; font-size: 13px; }
+
+  /* Apps */
+  .apps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .apps button, .inputs button {
+    height: 38px; padding: 0 10px;
+    justify-content: start; display: flex; align-items: center; gap: 8px;
+    font-size: 12.5px; font-weight: 550; border-radius: 10px;
+    white-space: nowrap; overflow: hidden;
+  }
+  .swatch { width: 8px; height: 8px; border-radius: 3px; flex: none; }
+  .inputs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .inputs svg { width: 16px; height: 16px; color: var(--muted); }
+
+  .hint { margin-top: 16px; text-align: center; color: var(--muted); font-size: 11.5px; }
+  kbd {
+    font: inherit; font-size: 11px; padding: 1px 6px; border-radius: 5px;
+    border: 1px solid var(--line); background: var(--card);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <button class="power" data-key="Power" data-label="Power" title="Power">
+      <svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>
+    </button>
+    <div>
+      <h1>Living Room TV</h1>
+      <div class="sub">40" Sharp Roku TV</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="pill" id="status"><span class="dot"></span><span id="statusText">Checking…</span></div>
+    <input class="ip" id="ip" spellcheck="false" title="TV IP address" aria-label="TV IP address">
+  </header>
+
+  <div class="grid">
+
+    <!-- Navigate -->
+    <section class="card">
+      <h2>Navigate</h2>
+      <div class="pad">
+        <button class="corner" data-key="Back" data-label="Back" title="Back (Backspace)">
+          <svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>
+        </button>
+        <button class="soft" data-key="Up" data-label="Up" data-repeat title="Up">
+          <svg viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></svg>
+        </button>
+        <button class="corner" data-key="Home" data-label="Home" title="Home (H)">
+          <svg viewBox="0 0 24 24"><path d="M3 11 12 3l9 8"/><path d="M5 10v10h14V10"/></svg>
+        </button>
+
+        <button class="soft" data-key="Left" data-label="Left" data-repeat title="Left">
+          <svg viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg>
+        </button>
+        <button class="primary ok" data-key="Select" data-label="OK" title="OK (Enter)">OK</button>
+        <button class="soft" data-key="Right" data-label="Right" data-repeat title="Right">
+          <svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+
+        <button class="corner" data-key="InstantReplay" data-label="Replay" title="Instant replay (R)">
+          <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+        </button>
+        <button class="soft" data-key="Down" data-label="Down" data-repeat title="Down">
+          <svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <button class="corner opt" data-key="Info" data-label="Options" title="Options ✱ (I)">✱</button>
+      </div>
+    </section>
+
+    <!-- Playback -->
+    <section class="card">
+      <h2>Playback</h2>
+      <div class="bar">
+        <button data-key="Rev" data-label="Rewind" title="Rewind ( , )">
+          <svg viewBox="0 0 24 24" class="fill"><path d="M11 6 3 12l8 6zM21 6l-8 6 8 6z"/></svg>
+        </button>
+        <button class="primary big" data-key="Play" data-label="Play / Pause" title="Play / Pause (Space)">
+          <svg viewBox="0 0 24 24" class="fill"><path d="M3 5l9 7-9 7z"/><rect x="14.5" y="5" width="2.6" height="14" rx=".6"/><rect x="19" y="5" width="2.6" height="14" rx=".6"/></svg>
+        </button>
+        <button data-key="Fwd" data-label="Fast forward" title="Fast forward ( . )">
+          <svg viewBox="0 0 24 24" class="fill"><path d="m13 6 8 6-8 6zM3 6l8 6-8 6z"/></svg>
+        </button>
+      </div>
+
+      <div class="sect">
+        <h2>Volume</h2>
+        <div class="bar vol">
+          <button data-key="VolumeDown" data-label="Volume down" data-repeat title="Volume down ( - )">−</button>
+          <button data-key="VolumeMute" data-label="Mute" title="Mute (M)">
+            <svg viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="m22 9-6 6M16 9l6 6"/></svg>
+          </button>
+          <button data-key="VolumeUp" data-label="Volume up" data-repeat title="Volume up ( + )">+</button>
+        </div>
+      </div>
+
+      <div class="sect">
+        <h2>Type on TV</h2>
+        <div class="text">
+          <input id="txt" placeholder="Search text…" spellcheck="false" aria-label="Text to type on TV">
+          <button class="primary" id="sendTxt" title="Type it on the TV">Send</button>
+          <button data-key="Backspace" data-label="Delete" title="Delete one character on TV">⌫</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Apps & inputs -->
+    <section class="card">
+      <h2>Apps</h2>
+      <div class="apps">
+        <button data-launch="12"><span class="swatch" style="background:#e50914"></span>Netflix</button>
+        <button data-launch="837"><span class="swatch" style="background:#ff2a2a"></span>YouTube</button>
+        <button data-launch="291097"><span class="swatch" style="background:#1d4ed8"></span>Disney+</button>
+        <button data-launch="2285"><span class="swatch" style="background:#1ce783"></span>Hulu</button>
+        <button data-launch="61322"><span class="swatch" style="background:#3b5bff"></span>HBO Max</button>
+        <button data-launch="31440"><span class="swatch" style="background:#0a64ff"></span>Paramount+</button>
+        <button data-launch="593099"><span class="swatch" style="background:#f5b700"></span>Peacock</button>
+        <button data-launch="22297"><span class="swatch" style="background:#1db954"></span>Spotify</button>
+        <button data-launch="151908"><span class="swatch" style="background:#6a3ef0"></span>Roku</button>
+      </div>
+
+      <div class="sect">
+        <h2>Inputs</h2>
+        <div class="inputs">
+          <button data-launch="tvinput.hdmi1"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="10" rx="2"/></svg>Switch 2</button>
+          <button data-launch="tvinput.hdmi2"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="10" rx="2"/></svg>Nintendo</button>
+          <button data-launch="tvinput.hdmi3"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="10" rx="2"/></svg>Chromecast</button>
+          <button data-launch="tvinput.dtv"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8"/></svg>Live TV</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="hint">
+    <kbd>←↑→↓</kbd> move · <kbd>Enter</kbd> OK · <kbd>Backspace</kbd> back · <kbd>H</kbd> home ·
+    <kbd>Space</kbd> play · <kbd>M</kbd> mute · <kbd>+</kbd><kbd>−</kbd> volume
+  </div>
+</div>
+
+<script>
+  const DEFAULT_IP = "10.0.0.228";
+  let ip = DEFAULT_IP;
+  try { ip = localStorage.getItem("rokuIp") || DEFAULT_IP; } catch (e) {}
+
+  const pill = document.getElementById("status");
+  const statusText = document.getElementById("statusText");
+  const ipInput = document.getElementById("ip");
+  const txt = document.getElementById("txt");
+  ipInput.value = ip;
+
+  function status(msg, state) {
+    statusText.textContent = msg;
+    pill.className = "pill" + (state === "err" ? " err" : " online");
+  }
+
+  async function request(path, method) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 3000);
+    try {
+      // no-cors: the TV receives the command; the browser just can't read the reply.
+      await fetch(`http://${ip}:8060/${path}`, { method, mode: "no-cors", signal: ctrl.signal });
+      return true;
+    } catch (e) {
+      status(`Can't reach TV at ${ip}`, "err");
+      return false;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function post(path, label) {
+    const ok = await request(path, "POST");
+    if (ok && label) status(label);
+    return ok;
+  }
+
+  const key = (k, label) => post("keypress/" + k, label || k);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  async function checkConnection() {
+    if (await request("query/device-info", "GET")) status("Connected");
+  }
+
+  // Plain buttons (click) and hold-to-repeat buttons (arrows, volume)
+  document.querySelectorAll("[data-key]").forEach(btn => {
+    const k = btn.dataset.key, label = btn.dataset.label;
+    if (btn.hasAttribute("data-repeat")) {
+      let delay, iv;
+      const stop = () => { clearTimeout(delay); clearInterval(iv); };
+      btn.addEventListener("pointerdown", e => {
+        e.preventDefault();
+        key(k, label);
+        delay = setTimeout(() => { iv = setInterval(() => key(k, label), 160); }, 420);
+      });
+      ["pointerup", "pointerleave", "pointercancel"].forEach(ev => btn.addEventListener(ev, stop));
+    } else {
+      btn.addEventListener("click", () => key(k, label));
+    }
+  });
+
+  document.querySelectorAll("[data-launch]").forEach(btn => {
+    btn.addEventListener("click", () => post("launch/" + btn.dataset.launch, "Opening " + btn.textContent.trim()));
+  });
+
+  // Type text on the TV one character at a time
+  async function sendText() {
+    const s = txt.value;
+    if (!s) return;
+    status(`Typing "${s}"…`);
+    for (const ch of s) {
+      if (!(await post("keypress/Lit_" + encodeURIComponent(ch)))) return;
+      await sleep(60);
+    }
+    status(`Typed "${s}"`);
+    txt.value = "";
+  }
+  document.getElementById("sendTxt").addEventListener("click", sendText);
+  txt.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); sendText(); } });
+
+  // IP address
+  ipInput.addEventListener("change", () => {
+    ip = ipInput.value.trim() || DEFAULT_IP;
+    ipInput.value = ip;
+    try { localStorage.setItem("rokuIp", ip); } catch (e) {}
+    status("Checking…");
+    checkConnection();
+  });
+
+  // Keyboard shortcuts
+  const keymap = {
+    ArrowUp: "Up", ArrowDown: "Down", ArrowLeft: "Left", ArrowRight: "Right",
+    Enter: "Select", Backspace: "Back", Escape: "Back",
+    h: "Home", H: "Home", " ": "Play", ",": "Rev", ".": "Fwd",
+    "+": "VolumeUp", "=": "VolumeUp", "-": "VolumeDown",
+    m: "VolumeMute", M: "VolumeMute", i: "Info", I: "Info", r: "InstantReplay", R: "InstantReplay"
+  };
+  document.addEventListener("keydown", e => {
+    if (e.target.tagName === "INPUT" || e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = keymap[e.key];
+    if (!k) return;
+    e.preventDefault();
+    const btn = document.querySelector(`[data-key="${k}"]`);
+    if (btn) { btn.classList.add("pressed"); setTimeout(() => btn.classList.remove("pressed"), 120); }
+    key(k, btn ? btn.dataset.label : k);
+  });
+
+  checkConnection();
+</script>
+</body>
+</html>
